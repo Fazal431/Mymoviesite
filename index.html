@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>MoinFlix - Movie & Songs</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1 id="site-title">MoinFlix 🎬</h1>
+    <input id="search" placeholder="Search movie..." />
+  </header>
+
+  <main class="container" id="app">
+    <div id="list-view">
+      <div class="grid" id="grid"></div>
+    </div>
+
+    <div id="detail-view" style="display:none"></div>
+  </main>
+
+  <footer class="footer">Made with ♥ — Replace all links with your legal files.</footer>
+
+  <script type="module">
+    import { movies } from './data.js';
+
+    const grid = document.getElementById('grid');
+    const detailView = document.getElementById('detail-view');
+    const listView = document.getElementById('list-view');
+    const search = document.getElementById('search');
+    const siteTitle = document.getElementById('site-title');
+
+    // Render grid
+    function renderGrid(list){
+      grid.innerHTML = '';
+      list.forEach(m=>{
+        const card = document.createElement('div');
+        card.className='card';
+        card.innerHTML = `
+          <a href="#movie=${m.id}" style="color:inherit;text-decoration:none">
+            <img src="${m.posterUrl}" alt="${m.title}">
+            <div class="meta">
+              <div class="title">${m.title} <span style="font-weight:400">(${m.year})</span></div>
+              <div class="sub">${m.languages.join(', ')} • ${m.quality?.[0]?.format || ''} • ${m.duration || ''}</div>
+            </div>
+          </a>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    // Render detail
+    function renderDetail(id){
+      const m = movies.find(x=>x.id===id);
+      if(!m) return routeToList();
+      listView.style.display='none';
+      detailView.style.display='block';
+      detailView.innerHTML = `
+        <div class="detail">
+          <a href="#" onclick="routeToList();return false" class="btn">⬅ Back</a>
+          <h2 style="margin-top:8px">${m.title} <small style="color:var(--muted)">(${m.year})</small></h2>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px">
+            <img src="${m.posterUrl}" alt="${m.title}" style="width:220px;border-radius:8px">
+            <div style="flex:1">
+              <p class="sub"><strong>Genres:</strong> ${m.genre.join(', ')}</p>
+              <p class="sub"><strong>Languages:</strong> ${m.languages.join(', ')}</p>
+              <p class="sub"><strong>Duration:</strong> ${m.duration || '-'}</p>
+              <p class="sub"><strong>Rating:</strong> ${m.rating || '-'}</p>
+              <p style="margin-top:8px">${m.description}</p>
+              <p style="margin-top:12px"><a class="linkbtn" href="${m.quality?.[0]?.link || '#'}" target="_blank">Download Movie (${m.quality?.[0]?.format || 'Link'})</a></p>
+            </div>
+          </div>
+
+          <h3 style="margin-top:16px">Songs</h3>
+          <ul class="songs">
+            ${m.videoSongs.map(s=>`<li>${s.title} • ${s.size} • <a class="btn" href="${s.url}" target="_blank">Download</a></li>`).join('')}
+          </ul>
+
+          <h3 style="margin-top:12px">All Qualities</h3>
+          <ul>
+            ${m.quality.map(q=>`<li>${q.format} — ${q.size} — ${q.type} — <a class="btn" href="${q.link}" target="_blank">Download</a></li>`).join('')}
+          </ul>
+        </div>
+      `;
+      window.scrollTo(0,0);
+    }
+
+    function routeToList(){
+      history.replaceState(null,'','');
+      listView.style.display='block';
+      detailView.style.display='none';
+    }
+
+    // Hash routing
+    window.addEventListener('hashchange', ()=>{
+      const h = location.hash.slice(1);
+      if(h.startsWith('movie=')){
+        const id = h.split('=')[1];
+        renderDetail(id);
+      } else routeToList();
+    });
+
+    // Search
+    search.addEventListener('input', ()=>{
+      const q = search.value.toLowerCase();
+      const filtered = movies.filter(m=> (m.title + (m.genre||[]).join(' ')).toLowerCase().includes(q));
+      renderGrid(filtered);
+    });
+
+    // initial render
+    renderGrid(movies);
+
+    // if url has hash
+    if(location.hash.startsWith('#movie=')){
+      const id = location.hash.split('=')[1];
+      renderDetail(id);
+    }
+
+    // expose routeToList to inline onclick
+    window.routeToList = routeToList;
+  </script>
+</body>
+</html>
